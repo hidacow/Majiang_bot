@@ -38,7 +38,7 @@ pip install python-socketio[client] numpy requests
 
 ### About params
 
-`-n` `--number `: Start this number of bots and join the room at the same time. Default: `3`
+`-n` `--number` : Start this number of bots and join the room at the same time. Default: `3`
 
 `-p` `--modelpath` : Path to your local Mortal model. Default: `model.pth`
 
@@ -50,7 +50,7 @@ pip install python-socketio[client] numpy requests
 
 `-a` `--apppath` : The path to Majiang app in the webroot. Default: `majiang/`
 
-> Auth address: `server` `apppath` `server/auth`  eg. `https://kobalab.net/` `majiang/` `server/auth`
+> Auth address: `server` `apppath` `server/auth/`  eg. `https://kobalab.net/` `majiang/` `server/auth/`
 >
 > Socket address: `server` `apppath` `server/socket.io/`  eg. `https://kobalab.net/` `majiang/` `server/socket.io/`
 >
