@@ -128,7 +128,7 @@ class GameState:
         self.is_bot_calculating = False
         return reaction
 
-    def trans_mjai_react(self, reaction: dict) -> dict:
+    def trans_mjai_react(self, reaction: dict | None) -> dict:
         """Translate mjai reaction to majiang dict format
 
         params:
@@ -136,8 +136,10 @@ class GameState:
         returns:
             dict: Translated mjai reaction in majiang dict format
         """
+        # if it is a neglected message and thus have a wrong seq, the server will still neglect it
+        # example: kaigang, say, player
         if reaction is None:
-            return {"seq": self.last_op_step}
+            return {"seq": self.last_op_step, "note": "Reaction is None"}
         re_type = reaction["type"]
         if re_type == MjaiType.NONE:
             return {"seq": self.last_op_step}
@@ -190,6 +192,7 @@ class GameState:
             if consumed[0] == "0":
                 consumed = consumed[1:] + ["0"]
             res = f"{pai[0]}{''.join(consumed)}-{pai[1]}"
+            return {"gang": res, "seq": self.last_op_step}
         elif re_type == MjaiType.REACH:
             reach_dahai_reaction = reaction["reach_dahai"]
             assert reach_dahai_reaction["type"] == MjaiType.DAHAI
@@ -206,7 +209,6 @@ class GameState:
             return None
 
     def _input_inner(self, majiang_msg: dict) -> dict | None:
-        print("[GameState]: ", majiang_msg)
         avail_types = {
             "kaiju",
             "qipai",
@@ -223,9 +225,21 @@ class GameState:
         majiang_type = list(majiang_msg.keys())[0]
         # assert majiang_type in avail_types
         if majiang_type not in avail_types:
-            print("[GameState]: Unexpected message: ")
+            if majiang_type in ["say", "player"]:
+                # Neglect these messages
+                return None
+            print("[GameState]: Unexpected message: ", majiang_type)
             return None
-        seq = majiang_msg["seq"]
+        print("[GameState]: ", majiang_msg)
+        try:
+            seq = majiang_msg["seq"]
+        except KeyError:
+            if majiang_type == "kaigang":
+                pass  # kaigang message has no seq
+            else:
+                print("[seq error]!", majiang_msg)
+            seq = self.last_op_step
+
         self.last_op_step = seq
         # Game Start
         if majiang_type == "kaiju":
@@ -255,14 +269,16 @@ class GameState:
         # Process dora events
         # According to mjai.app, in the case of an ankan, the dora event comes first, followed by the tsumo event.
         if majiang_type == "kaigang":
+            dora = mj_helper.cvt_majiang2mjai(majiang_data["baopai"])
             self.mjai_pending_input_msgs.append(
                 {
                     "type": MjaiType.DORA,
-                    "dora_marker": mj_helper.cvt_majiang2mjai(majiang_data["doras"]),
+                    "dora_marker": dora,
                 }
             )
-            self.kyoku_state.doras_ms = majiang_data["doras"]  # never mind the format
-            return self._react_all(majiang_data)
+            self.kyoku_state.doras_ms.append(dora)
+            # This event do not need to be reacted
+            return None
 
         if majiang_type == "zimo" or majiang_type == "gangzimo":
             actor = (majiang_data["l"] + self.kyoku_state.kyoku - 1) % 4
@@ -380,16 +396,35 @@ class GameState:
                     consumed_mjai.append(
                         mj_helper.cvt_majiang2mjai(majiang_data["m"][0] + ch)
                     )
+                # if actor == self.seat:
+                #     self.kyoku_state.my_tehai.append(self.kyoku_state.my_tsumohai)
+                #     self.kyoku_state.my_tsumohai = None
+                #     for c in consumed_mjai:
+                #         self.kyoku_state.my_tehai.remove(c)
+                #     self.kyoku_state.my_tehai = mj_helper.sort_mjai_tiles(
+                #         self.kyoku_state.my_tehai
+                #     )
+
                 self.mjai_pending_input_msgs.append(
                     {"type": action_type, "actor": actor, "consumed": consumed_mjai}
                 )
             elif len(majiang_data["m"]) == 6:  # e.g. z666-6: 發を加槓
                 action_type = MjaiType.KAKAN
                 for ch in majiang_data["m"][1:]:
+                    if ch in ["+", "=", "-"]:
+                        continue
                     consumed_mjai.append(
                         mj_helper.cvt_majiang2mjai(majiang_data["m"][0] + ch)
                     )
                 pai = consumed_mjai.pop()
+                # if actor == self.seat:
+                #     self.kyoku_state.my_tehai.append(self.kyoku_state.my_tsumohai)
+                #     self.kyoku_state.my_tsumohai = None
+                #     self.kyoku_state.my_tehai.remove(pai)
+                #     self.kyoku_state.my_tehai = mj_helper.sort_mjai_tiles(
+                #         self.kyoku_state.my_tehai
+                #     )
+
                 self.mjai_pending_input_msgs.append(
                     {
                         "type": action_type,
