@@ -108,7 +108,7 @@ If one bot encounters an error, other bots may not exit automatically. You can k
 
 [smly/mjai.app](https://github.com/smly/mjai.app)
 
-> You can use [Apricot-S/majiang-log](https://github.com/Apricot-S/majiang-log) to transform Majiang paipu into Tenhou format for further analysis in [mjai-reviewer](https://mjai.ekyu.moe/), etc.
+> You can use [kobalab/tenhou-url-log](https://github.com/kobalab/tenhou-url-log) or [Apricot-S/majiang-log](https://github.com/Apricot-S/majiang-log) to transform Majiang paipu into Tenhou format for further analysis in [mjai-reviewer](https://mjai.ekyu.moe/), etc.
 
 ## License
 
